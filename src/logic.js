@@ -1,6 +1,8 @@
 const cnv = document.getElementById('cnv');
-const width = cnv.width = 900;
-const height = cnv.height = 600;
+const SIM_WIDTH = 900;
+const SIM_HEIGHT = 600;
+cnv.width = window.innerWidth;
+cnv.height = window.innerHeight;
 const gl = cnv.getContext('webgl2');
 
 const quad = [
@@ -40,15 +42,21 @@ let fb;
 let fb1;
 
 document.addEventListener('mousemove', mouseMove);
+window.addEventListener('resize', onResize);
 
 initGL();
+
+function onResize() {
+	cnv.width = window.innerWidth;
+	cnv.height = window.innerHeight;
+}
 
 function initGL() {
 	gl.getExtension('EXT_color_buffer_float');
 	gl.getExtension('EXT_float_blend');
 	gl.getExtension('OES_texture_float_linear');
 
-	gl.viewport(0, 0, width, height);
+	gl.viewport(0, 0, SIM_WIDTH, SIM_HEIGHT);
 	
 	waveProgram = makeWaveProgram(gl);
 	originalProgram = makeOriginalProgram(gl);
@@ -69,7 +77,7 @@ function initGL() {
 	gl.enableVertexAttribArray(originalProgram.texcoordAttribute);
 	gl.vertexAttribPointer(originalProgram.texcoordAttribute, 2, gl.FLOAT, false, 0, 0);
 
-	gl.uniform2f(originalProgram.resolutionUniform, width, height);
+	gl.uniform2f(originalProgram.resolutionUniform, SIM_WIDTH, SIM_HEIGHT);
 	gl.uniform1f(originalProgram.timeUniform, 0);
 	gl.uniform2f(originalProgram.mouseUniform, 0, 0);
 
@@ -110,12 +118,12 @@ function initGL() {
 	gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT2, gl.TEXTURE_2D, textureAcc1, 0);
 
 	gl.useProgram(renderProgram.program);
-	gl.uniform2f(renderProgram.resolutionUniform, width, height);
+	gl.uniform2f(renderProgram.resolutionUniform, SIM_WIDTH, SIM_HEIGHT);
 	gl.uniform1i(renderProgram.textureUniform, 0);
 	gl.uniform1i(renderProgram.textureWallsUniform, 1);
 
 	gl.useProgram(waveProgram.program);
-	gl.uniform2f(waveProgram.resolutionUniform, width, height);
+	gl.uniform2f(waveProgram.resolutionUniform, SIM_WIDTH, SIM_HEIGHT);
 	gl.uniform1f(waveProgram.timeUniform, 0);
 	gl.uniform2f(waveProgram.mouseUniform, 0, 0);
 	gl.uniform1i(waveProgram.textureAmpUniform, 0);
@@ -128,13 +136,14 @@ function initGL() {
 
 function makeTexture(texture) {
 	gl.bindTexture(gl.TEXTURE_2D, texture);
-	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, width, height, 0, gl.RGBA, gl.FLOAT, null);
+	gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA32F, SIM_WIDTH, SIM_HEIGHT, 0, gl.RGBA, gl.FLOAT, null);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
 	gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 }
 
 function logic() {
+	gl.viewport(0, 0, SIM_WIDTH, SIM_HEIGHT);
 	gl.useProgram(waveProgram.program);
 	gl.uniform1f(waveProgram.timeUniform, time / 1000.0);
 	gl.uniform2f(waveProgram.mouseUniform, mx, my);
@@ -166,6 +175,7 @@ function logic() {
 }
 
 function render() {
+	gl.viewport(0, 0, cnv.width, cnv.height);
 	gl.useProgram(renderProgram.program);
 
 	gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -183,6 +193,6 @@ function update() {
 }
 
 function mouseMove(e) {
-	mx = (e.clientX / width - 0.5) * (width / height);
-	my = -e.clientY / height + 0.5;
+	mx = (e.clientX / cnv.width - 0.5) * (SIM_WIDTH / SIM_HEIGHT);
+	my = -e.clientY / cnv.height + 0.5;
 }
