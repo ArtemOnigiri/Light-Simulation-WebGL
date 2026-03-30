@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Light Prism Simulation — How It Works</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --bg2: #12121a;
+    --bg3: #1a1a26;
+    --surface: #1e1e2e;
+    --border: #2a2a3e;
+    --text: #e0e0ef;
+    --text-dim: #8888aa;
+    --accent: #7c6ff7;
+    --accent2: #4fc3f7;
+    --red: #ff6b6b;
+    --green: #69db7c;
+    --blue: #74c0fc;
+    --orange: #ffa94d;
+    --pink: #f06595;
+    --rainbow-1: #ff0000;
+    --rainbow-2: #ff8800;
+    --rainbow-3: #ffff00;
+    --rainbow-4: #00ff00;
+    --rainbow-5: #0088ff;
+    --rainbow-6: #4400ff;
+    --rainbow-7: #8800ff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    line-height: 1.7;
+    font-size: 16px;
+    overflow-x: hidden;
+  }
+
+  /* Hero */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(ellipse 600px 400px at 30% 40%, rgba(255,50,50,0.08), transparent),
+      radial-gradient(ellipse 500px 350px at 50% 50%, rgba(255,255,255,0.03), transparent),
+      radial-gradient(ellipse 600px 400px at 70% 60%, rgba(100,50,255,0.08), transparent);
+  }
+
+  .hero-content { position: relative; z-index: 1; max-width: 800px; padding: 2rem; }
+
+  .hero h1 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, #fff 0%, var(--accent2) 50%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1rem;
+  }
+
+  .hero p {
+    font-size: 1.2rem;
+    color: var(--text-dim);
+    max-width: 600px;
+    margin: 0 auto 2rem;
+  }
+
+  .hero .prism-icon {
+    width: 120px; height: 120px;
+    margin: 0 auto 2rem;
+    position: relative;
+  }
+
+  .hero .prism-icon svg { width: 100%; height: 100%; }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    animation: bounce 2s infinite;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(10px); }
+  }
+
+  /* Section Layout */
+  section {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 6rem 2rem;
+  }
+
+  .section-number {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(124,111,247,0.1);
+    border: 1px solid rgba(124,111,247,0.2);
+    padding: 0.3rem 0.9rem;
+    border-radius: 100px;
+    margin-bottom: 1.2rem;
+  }
+
+  h2 {
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 1.5rem;
+  }
+
+  h3 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+    color: var(--accent2);
+  }
+
+  p { margin-bottom: 1rem; }
+
+  /* Cards */
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.8rem;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+  }
+
+  .card-icon {
+    width: 48px; height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-icon.amp  { background: rgba(255,107,107,0.15); }
+  .card-icon.vel  { background: rgba(79,195,247,0.15); }
+  .card-icon.acc  { background: rgba(105,219,124,0.15); }
+  .card-icon.wall { background: rgba(255,169,77,0.15); }
+
+  /* Code Blocks */
+  .code-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    overflow-x: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.88rem;
+    line-height: 1.8;
+  }
+
+  .code-block .comment { color: #5c6370; }
+  .code-block .keyword { color: #c678dd; }
+  .code-block .type { color: #e5c07b; }
+  .code-block .fn { color: #61afef; }
+  .code-block .number { color: #d19a66; }
+  .code-block .string { color: #98c379; }
+  .code-block .var { color: #e06c75; }
+  .code-block .op { color: #56b6c2; }
+
+  /* Diagrams */
+  .diagram-container {
+    margin: 2.5rem 0;
+    display: flex;
+    justify-content: center;
+  }
+
+  .diagram {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .diagram svg { display: block; margin: 0 auto; }
+
+  /* Equation boxes */
+  .equation-box {
+    background: linear-gradient(135deg, rgba(124,111,247,0.08), rgba(79,195,247,0.08));
+    border: 1px solid rgba(124,111,247,0.2);
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    margin: 1.5rem 0;
+    text-align: center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1.1rem;
+  }
+
+  .equation-box .label {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.5rem;
+    font-family: 'Inter', sans-serif;
+  }
+
+  /* Info callouts */
+  .callout {
+    background: var(--bg3);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 10px 10px 0;
+    padding: 1.2rem 1.5rem;
+    margin: 1.5rem 0;
+  }
+
+  .callout.insight { border-left-color: var(--green); }
+  .callout.warning { border-left-color: var(--orange); }
+
+  .callout strong {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .callout.insight strong { color: var(--green); }
+  .callout.warning strong { color: var(--orange); }
+
+  /* Step flow */
+  .step-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin: 2rem 0;
+    position: relative;
+  }
+
+  .step-flow::before {
+    content: '';
+    position: absolute;
+    left: 24px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(to bottom, var(--accent), var(--accent2), var(--green));
+  }
+
+  .step {
+    display: flex;
+    gap: 1.5rem;
+    padding: 1.5rem 0;
+    position: relative;
+  }
+
+  .step-number {
+    width: 50px; height: 50px; min-width: 50px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 2px solid var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--accent);
+    z-index: 1;
+  }
+
+  .step-content h3 { margin-top: 0.6rem; }
+
+  /* Rainbow bar */
+  .rainbow-bar {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(90deg,
+      var(--rainbow-1), var(--rainbow-2), var(--rainbow-3),
+      var(--rainbow-4), var(--rainbow-5), var(--rainbow-6), var(--rainbow-7));
+    margin: 3rem 0;
+  }
+
+  /* Interactive Grid Canvas */
+  .grid-demo-container {
+    display: flex;
+    justify-content: center;
+    margin: 2rem 0;
+  }
+
+  .grid-demo-container canvas {
+    border-radius: 12px;
+    border: 1px solid var(--border);
+  }
+
+  /* Pipeline Diagram */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin: 2rem 0;
+  }
+
+  .pipeline-stage {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1rem 1.5rem;
+    text-align: center;
+    min-width: 140px;
+  }
+
+  .pipeline-stage .stage-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--accent2);
+    margin-bottom: 0.3rem;
+  }
+
+  .pipeline-stage .stage-desc {
+    font-size: 0.78rem;
+    color: var(--text-dim);
+  }
+
+  .pipeline-arrow {
+    font-size: 1.5rem;
+    color: var(--text-dim);
+    padding: 0 0.5rem;
+  }
+
+  /* Texture table */
+  .texture-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-size: 0.92rem;
+  }
+
+  .texture-table th, .texture-table td {
+    padding: 0.8rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .texture-table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-dim);
+    font-weight: 600;
+  }
+
+  .texture-table .channel { font-family: 'JetBrains Mono', monospace; }
+  .texture-table .r { color: var(--red); }
+  .texture-table .g { color: var(--green); }
+  .texture-table .b { color: var(--blue); }
+
+  /* Separation demo */
+  .color-channel-demo {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+
+  .channel-box {
+    border-radius: 12px;
+    padding: 1.5rem;
+    text-align: center;
+  }
+
+  .channel-box.red-ch   { background: rgba(255,50,50,0.12); border: 1px solid rgba(255,50,50,0.25); }
+  .channel-box.green-ch { background: rgba(50,255,50,0.12); border: 1px solid rgba(50,255,50,0.25); }
+  .channel-box.blue-ch  { background: rgba(50,50,255,0.12); border: 1px solid rgba(50,50,255,0.25); }
+
+  .channel-box .ch-label {
+    font-weight: 700;
+    font-size: 1.1rem;
+    margin-bottom: 0.3rem;
+  }
+
+  .channel-box.red-ch   .ch-label { color: #ff6b6b; }
+  .channel-box.green-ch .ch-label { color: #69db7c; }
+  .channel-box.blue-ch  .ch-label { color: #74c0fc; }
+
+  .channel-box .ch-speed {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--text-dim);
+  }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    padding: 3rem 2rem;
+    color: var(--text-dim);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+  }
+
+  footer a { color: var(--accent2); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .color-channel-demo { grid-template-columns: 1fr; }
+    .pipeline { flex-direction: column; }
+    .pipeline-arrow { transform: rotate(90deg); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ============================== HERO ============================== -->
+<div class="hero">
+  <div class="hero-content">
+    <div class="prism-icon">
+      <svg viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="prism-fill" x1="20" y1="100" x2="100" y2="20">
+            <stop offset="0%" stop-color="rgba(124,111,247,0.25)"/>
+            <stop offset="100%" stop-color="rgba(79,195,247,0.15)"/>
+          </linearGradient>
+          <linearGradient id="rainbow-grad" x1="80" y1="30" x2="120" y2="90">
+            <stop offset="0%" stop-color="#ff0000"/>
+            <stop offset="16%" stop-color="#ff8800"/>
+            <stop offset="33%" stop-color="#ffff00"/>
+            <stop offset="50%" stop-color="#00ff00"/>
+            <stop offset="66%" stop-color="#0088ff"/>
+            <stop offset="83%" stop-color="#4400ff"/>
+            <stop offset="100%" stop-color="#8800ff"/>
+          </linearGradient>
+        </defs>
+        <!-- Incoming white beam -->
+        <line x1="0" y1="58" x2="42" y2="52" stroke="white" stroke-width="3" stroke-linecap="round" opacity="0.8"/>
+        <!-- Prism -->
+        <polygon points="60,15 100,100 20,100" fill="url(#prism-fill)" stroke="rgba(150,150,200,0.3)" stroke-width="1.5"/>
+        <!-- Rainbow beams -->
+        <line x1="78" y1="48" x2="118" y2="20" stroke="#ff3333" stroke-width="1.5" opacity="0.9"/>
+        <line x1="80" y1="52" x2="120" y2="35" stroke="#ff8800" stroke-width="1.5" opacity="0.9"/>
+        <line x1="81" y1="56" x2="120" y2="50" stroke="#eedd00" stroke-width="1.5" opacity="0.9"/>
+        <line x1="82" y1="60" x2="120" y2="65" stroke="#00cc44" stroke-width="1.5" opacity="0.9"/>
+        <line x1="81" y1="64" x2="118" y2="80" stroke="#2288ff" stroke-width="1.5" opacity="0.9"/>
+        <line x1="80" y1="68" x2="115" y2="95" stroke="#6600ff" stroke-width="1.5" opacity="0.9"/>
+        <line x1="78" y1="71" x2="112" y2="108" stroke="#9900ff" stroke-width="1.5" opacity="0.9"/>
+      </svg>
+    </div>
+    <h1>How the Light Simulation Works</h1>
+    <p>A deep dive into the wave-equation cellular automata, chromatic dispersion, and GPU ping-pong rendering that produces a rainbow from a prism.</p>
+  </div>
+  <div class="scroll-hint">↓ Scroll to explore</div>
+</div>
+
+<!-- ============================== SECTION 1: BIG PICTURE ============================== -->
+<section>
+  <span class="section-number">01 — Overview</span>
+  <h2>The Big Picture</h2>
+  <p>This simulation doesn't ray-trace light — it actually solves the <strong>2D wave equation</strong> on a grid, treating each pixel as a tiny oscillating cell. White light enters as a wave, hits a triangular prism that slows it down, and different color channels (R, G, B) travel at <em>slightly different speeds</em> inside the prism, causing them to separate into a rainbow.</p>
+
+  <div class="pipeline">
+    <div class="pipeline-stage">
+      <div class="stage-title">Init Shader</div>
+      <div class="stage-desc">Draws the prism wall map</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-stage">
+      <div class="stage-title">Wave Shader</div>
+      <div class="stage-desc">Simulates physics each frame</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-stage">
+      <div class="stage-title">Ping-Pong</div>
+      <div class="stage-desc">Double-buffer texture swap</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-stage">
+      <div class="stage-title">Render Shader</div>
+      <div class="stage-desc">Tone-maps to screen</div>
+    </div>
+  </div>
+
+  <p>Every animation frame, the wave shader runs <strong>8 simulation steps</strong> (4 × ping-pong = 8 updates), then the result is rendered to the screen. All computation happens on the GPU via WebGL2 fragment shaders.</p>
+</section>
+
+<div class="rainbow-bar"></div>
+
+<!-- ============================== SECTION 2: THE GRID ============================== -->
+<section>
+  <span class="section-number">02 — The Grid</span>
+  <h2>Cellular Automata Grid</h2>
+  <p>The simulation domain is a <strong>900 × 600 pixel grid</strong>. Each pixel is a "cell" in the automaton. Every cell stores three values, packed into GPU textures:</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <div class="card-icon amp">〰️</div>
+      <h3>Amplitude <code style="color:var(--red)">amp</code></h3>
+      <p>The current displacement of the wave at this cell. Stored as an <code>RGB vec3</code> — one independent wave per color channel (Red, Green, Blue).</p>
+    </div>
+    <div class="card">
+      <div class="card-icon vel">⚡</div>
+      <h3>Velocity <code style="color:var(--accent2)">vel</code></h3>
+      <p>How fast the amplitude is changing. This is the time-derivative of amplitude. Also an RGB vec3.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon acc">💡</div>
+      <h3>Accumulated Exposure <code style="color:var(--green)">acc</code></h3>
+      <p>A running sum of <code>|amplitude|</code> over time. This is what you actually <em>see</em> — it acts like a long-exposure photograph of the wave energy.</p>
+    </div>
+    <div class="card">
+      <div class="card-icon wall">🔷</div>
+      <h3>Wall / Speed Map <code style="color:var(--orange)">wall</code></h3>
+      <p>The speed of propagation at this cell. <strong>1.0</strong> = vacuum (air), <strong>0.6</strong> = inside the prism (glass). Set once at initialization.</p>
+    </div>
+  </div>
+
+  <div class="callout insight">
+    <strong>💡 Key Insight</strong>
+    Each cell doesn't just store a single number — it stores <strong>three independent waves</strong> (R, G, B) simultaneously. This is what makes chromatic dispersion possible.
+  </div>
+
+  <h3>How Textures Map to the Grid</h3>
+  <p>Each of these values is stored in a 32-bit floating-point RGBA texture (<code>RGBA32F</code>). The grid looks like this:</p>
+
+  <table class="texture-table">
+    <thead>
+      <tr>
+        <th>Texture</th>
+        <th>Channel R</th>
+        <th>Channel G</th>
+        <th>Channel B</th>
+        <th>Size</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>textureAmp</strong></td>
+        <td class="channel r">Red wave amplitude</td>
+        <td class="channel g">Green wave amplitude</td>
+        <td class="channel b">Blue wave amplitude</td>
+        <td>900×600</td>
+      </tr>
+      <tr>
+        <td><strong>textureVel</strong></td>
+        <td class="channel r">Red wave velocity</td>
+        <td class="channel g">Green wave velocity</td>
+        <td class="channel b">Blue wave velocity</td>
+        <td>900×600</td>
+      </tr>
+      <tr>
+        <td><strong>textureAcc</strong></td>
+        <td class="channel r">Red accumulated</td>
+        <td class="channel g">Green accumulated</td>
+        <td class="channel b">Blue accumulated</td>
+        <td>900×600</td>
+      </tr>
+      <tr>
+        <td><strong>textureWalls</strong></td>
+        <td class="channel" style="color:var(--orange)">Speed (0.6 or 1.0)</td>
+        <td class="channel" style="color:var(--text-dim)">unused</td>
+        <td class="channel" style="color:var(--text-dim)">unused</td>
+        <td>900×600</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<div class="rainbow-bar"></div>
+
+<!-- ============================== SECTION 3: THE PRISM ============================== -->
+<section>
+  <span class="section-number">03 — The Prism</span>
+  <h2>Drawing the Wall Map</h2>
+  <p>The <strong>original-shader</strong> runs once at startup. Its only job: compute a signed-distance-field (SDF) triangle and write the speed map.</p>
+
+  <div class="code-block">
+    <span class="comment">// SDF of an equilateral triangle</span><br>
+    <span class="keyword">float</span> <span class="fn">triangle</span>(<span class="type">vec2</span> <span class="var">p</span>) {<br>
+    &nbsp;&nbsp;<span class="keyword">const float</span> <span class="var">k</span> = <span class="fn">sqrt</span>(<span class="number">3.0</span>);<br>
+    &nbsp;&nbsp;<span class="var">p</span>.x = <span class="fn">abs</span>(<span class="var">p</span>.x) - <span class="number">1.0</span>;<br>
+    &nbsp;&nbsp;<span class="var">p</span>.y = <span class="var">p</span>.y + <span class="number">1.0</span> / <span class="var">k</span>;<br>
+    &nbsp;&nbsp;<span class="keyword">if</span>(<span class="var">p</span>.x + <span class="var">k</span> * <span class="var">p</span>.y > <span class="number">0.0</span>) ...<br>
+    &nbsp;&nbsp;<span class="keyword">return</span> -<span class="fn">length</span>(<span class="var">p</span>) * <span class="fn">sign</span>(<span class="var">p</span>.y);<br>
+    }
+  </div>
+
+  <p>The SDF returns a <strong>negative value inside</strong> the triangle and positive outside. This is then converted to a speed value:</p>
+
+  <div class="equation-box">
+    <span class="label">Speed Map Rule</span>
+    <span style="color:var(--orange)">speed</span> = (d &lt; 0) ? <span style="color:var(--accent2)">0.6</span> : <span style="color:var(--green)">1.0</span>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram">
+      <svg width="500" height="340" viewBox="0 0 500 340" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Background grid -->
+        <defs>
+          <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+            <path d="M 20 0 L 0 0 0 20" fill="none" stroke="rgba(100,100,150,0.1)" stroke-width="0.5"/>
+          </pattern>
+        </defs>
+        <rect width="500" height="340" fill="url(#grid)"/>
+
+        <!-- Outside label -->
+        <text x="80" y="60" fill="#888" font-family="Inter" font-size="13" text-anchor="middle">speed = 1.0</text>
+        <text x="80" y="78" fill="#666" font-family="Inter" font-size="11" text-anchor="middle">(vacuum / air)</text>
+
+        <!-- Triangle prism -->
+        <polygon points="250,40 400,280 100,280" fill="rgba(79,195,247,0.1)" stroke="rgba(79,195,247,0.5)" stroke-width="2"/>
+
+        <!-- Inside label -->
+        <text x="250" y="200" fill="var(--accent2)" font-family="Inter" font-size="13" text-anchor="middle" font-weight="600">speed = 0.6</text>
+        <text x="250" y="220" fill="#888" font-family="Inter" font-size="11" text-anchor="middle">(INDEX_OF_REFRACTION = 3/5)</text>
+
+        <!-- d < 0 annotation -->
+        <text x="250" y="250" fill="#666" font-family="JetBrains Mono" font-size="11" text-anchor="middle">d = triangle(uv) &lt; 0</text>
+
+        <!-- d > 0 annotation -->
+        <text x="420" y="120" fill="#666" font-family="JetBrains Mono" font-size="11" text-anchor="middle">d &gt; 0</text>
+      </svg>
+    </div>
+  </div>
+
+  <p>The constant <code style="color:var(--accent2)">INDEX_OF_REFRACTION = 3/5 = 0.6</code> means waves travel at 60% speed inside the prism. This is the <em>base</em> speed — each color channel gets a slightly different modification on top of that.</p>
+</section>
+
+<div class="rainbow-bar"></div>
+
+<!-- ============================== SECTION 4: WAVE EQUATION ============================== -->
+<section>
+  <span class="section-number">04 — The Wave Equation</span>
+  <h2>How Each Cell Updates</h2>
+  <p>This is the heart of the simulation. Every cell updates using a discrete version of the <strong>2D wave equation</strong>, which is essentially the physics of ripples:</p>
+
+  <div class="equation-box">
+    <span class="label">Discrete 2D Wave Equation (per cell, per frame)</span>
+    <strong>force</strong> = ampUp + ampRight + ampDown + ampLeft<br><br>
+    <strong>vel</strong> += (force × 0.25 − amp) × speed<br><br>
+    <strong>amp</strong> += vel
+  </div>
+
+  <h3>Step-by-Step Breakdown</h3>
+
+  <div class="step-flow">
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <h3>Sample the 4 Neighbors</h3>
+        <p>For each cell, we read the amplitude of the 4 directly adjacent cells (Von Neumann neighborhood). The offset between cells is <code>1.0 / resolution</code> in texture coordinates.</p>
+        <div class="code-block">
+          <span class="type">vec3</span> <span class="var">offset</span> = <span class="type">vec3</span>(<span class="type">vec2</span>(<span class="number">1.0</span>) / <span class="var">u_resolution</span>, <span class="number">0.0</span>);<br>
+          <span class="type">vec3</span> <span class="var">ampUp</span>    = <span class="fn">texture</span>(u_textureAmp, v_texcoord + offset.<span class="var">zy</span>).rgb;<br>
+          <span class="type">vec3</span> <span class="var">ampRight</span> = <span class="fn">texture</span>(u_textureAmp, v_texcoord + offset.<span class="var">xz</span>).rgb;<br>
+          <span class="type">vec3</span> <span class="var">ampDown</span>  = <span class="fn">texture</span>(u_textureAmp, v_texcoord - offset.<span class="var">zy</span>).rgb;<br>
+          <span class="type">vec3</span> <span class="var">ampLeft</span>  = <span class="fn">texture</span>(u_textureAmp, v_texcoord - offset.<span class="var">xz</span>).rgb;
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <h3>Compute Force (Discrete Laplacian)</h3>
+        <p>The sum of the 4 neighbors minus 4× the center is the <strong>discrete Laplacian</strong> — it measures how different this cell is from its surroundings. Here it's written as <code>force × 0.25 − amp</code>, which is equivalent to <code>(neighbors_sum − 4 × amp) / 4</code>.</p>
+        <div class="equation-box">
+          <span class="label">The Laplacian</span>
+          ∇²amp ≈ (ampUp + ampDown + ampLeft + ampRight − 4 × amp) / 4
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-content">
+        <h3>Scale by Speed (Refraction!)</h3>
+        <p>The Laplacian is multiplied by <code>speed</code> — the wall map value. This is how the prism slows down waves. Inside the prism, <code>speed = 0.6</code>, so the wave propagation is slower, bending the wavefronts.</p>
+        <div class="code-block">
+          <span class="var">vel</span> += (<span class="var">force</span> * <span class="number">0.25</span> - <span class="var">amp</span>) * <span class="var">speed</span>;
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">4</div>
+      <div class="step-content">
+        <h3>Update Amplitude</h3>
+        <p>Velocity is added to amplitude — the cell oscillates. This is the classic <a href="https://en.wikipedia.org/wiki/Verlet_integration" style="color:var(--accent2)">Verlet-style integration</a>.</p>
+        <div class="code-block">
+          <span class="var">amp</span> += <span class="var">vel</span>;
+        </div>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-number">5</div>
+      <div class="step-content">
+        <h3>Accumulate Exposure</h3>
+        <p>The absolute value of amplitude is added to the exposure buffer each frame, creating a long-exposure photograph effect:</p>
+        <div class="code-block">
+          <span class="var">acc</span> += <span class="fn">abs</span>(<span class="var">amp</span>) * <span class="number">0.002</span>; <span class="comment">// ACCUMULATED_EXPOSURE</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="diagram-container">
+    <div class="diagram">
+      <svg width="420" height="300" viewBox="0 0 420 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Grid cells -->
+        <rect x="140" y="60" width="60" height="60" fill="rgba(79,195,247,0.15)" stroke="rgba(79,195,247,0.4)" stroke-width="1.5" rx="4"/>
+        <text x="170" y="95" fill="var(--accent2)" font-family="JetBrains Mono" font-size="11" text-anchor="middle">ampUp</text>
+
+        <rect x="60" y="140" width="60" height="60" fill="rgba(79,195,247,0.15)" stroke="rgba(79,195,247,0.4)" stroke-width="1.5" rx="4"/>
+        <text x="90" y="175" fill="var(--accent2)" font-family="JetBrains Mono" font-size="11" text-anchor="middle">ampLeft</text>
+
+        <rect x="140" y="140" width="60" height="60" fill="rgba(255,107,107,0.2)" stroke="rgba(255,107,107,0.5)" stroke-width="2" rx="4"/>
+        <text x="170" y="168" fill="var(--red)" font-family="JetBrains Mono" font-size="11" text-anchor="middle" font-weight="700">CENTER</text>
+        <text x="170" y="185" fill="var(--red)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">amp, vel</text>
+
+        <rect x="220" y="140" width="60" height="60" fill="rgba(79,195,247,0.15)" stroke="rgba(79,195,247,0.4)" stroke-width="1.5" rx="4"/>
+        <text x="250" y="175" fill="var(--accent2)" font-family="JetBrains Mono" font-size="11" text-anchor="middle">ampRight</text>
+
+        <rect x="140" y="220" width="60" height="60" fill="rgba(79,195,247,0.15)" stroke="rgba(79,195,247,0.4)" stroke-width="1.5" rx="4"/>
+        <text x="170" y="255" fill="var(--accent2)" font-family="JetBrains Mono" font-size="11" text-anchor="middle">ampDown</text>
+
+        <!-- Arrows from neighbors to center -->
+        <line x1="170" y1="120" x2="170" y2="138" stroke="rgba(79,195,247,0.6)" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+        <line x1="120" y1="170" x2="138" y2="170" stroke="rgba(79,195,247,0.6)" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+        <line x1="220" y1="170" x2="202" y2="170" stroke="rgba(79,195,247,0.6)" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+        <line x1="170" y1="220" x2="170" y2="202" stroke="rgba(79,195,247,0.6)" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+
+        <defs>
+          <marker id="arrowBlue" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(79,195,247,0.6)"/>
+          </marker>
+        </defs>
+
+        <!-- Formula on the side -->
+        <text x="340" y="130" fill="var(--text)" font-family="JetBrains Mono" font-size="11" text-anchor="start">force = sum of</text>
+        <text x="340" y="148" fill="var(--text)" font-family="JetBrains Mono" font-size="11" text-anchor="start">4 neighbors</text>
+        <text x="340" y="180" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="11" text-anchor="start">vel += (force</text>
+        <text x="340" y="198" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="11" text-anchor="start">  × 0.25 - amp)</text>
+        <text x="340" y="216" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="11" text-anchor="start">  × speed</text>
+        <text x="340" y="248" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="11" text-anchor="start">amp += vel</text>
+
+        <!-- Label -->
+        <text x="170" y="30" fill="var(--text)" font-family="Inter" font-size="14" text-anchor="middle" font-weight="600">Von Neumann Neighborhood</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<div class="rainbow-bar"></div>
+
+<!-- ============================== SECTION 5: COLOR SHIFT ============================== -->
+<section>
+  <span class="section-number">05 — Chromatic Dispersion</span>
+  <h2>How Colors Separate</h2>
+  <p>This is where the magic happens. Each R, G, B channel represents a different "frequency" of light. The trick: <strong>inside the prism, each channel propagates at a slightly different speed</strong>.</p>
+
+  <div class="code-block">
+    <span class="keyword">const</span> <span class="type">vec3</span> <span class="var">COLOR_SHIFT</span> = <span class="type">vec3</span>(<span class="number">0.002</span>, <span class="number">0.0</span>, <span class="number">-0.004</span>) * <span class="number">10.0</span>;<br>
+    <span class="comment">// = vec3(0.02, 0.0, -0.04)</span><br><br>
+    <span class="var">speed</span> += <span class="var">COLOR_SHIFT</span> * <span class="fn">smoothstep</span>(<span class="number">0.91</span>, <span class="number">0.9</span>, <span class="var">speed</span>);
+  </div>
+
+  <p>The <code>smoothstep(0.91, 0.9, speed)</code> returns <strong>1.0 when speed &lt; 0.9</strong> (inside the prism where speed = 0.6) and <strong>0.0 when speed = 1.0</strong> (outside). So COLOR_SHIFT is only applied inside the prism.</p>
+
+  <div class="color-channel-demo">
+    <div class="channel-box red-ch">
+      <div class="ch-label">Red Channel</div>
+      <div class="ch-speed">speed = 0.6 + 0.02 = <strong>0.62</strong></div>
+      <p style="font-size:0.85rem; color:var(--text-dim); margin-top:0.5rem">Fastest in glass → least refraction → bends least</p>
+    </div>
+    <div class="channel-box green-ch">
+      <div class="ch-label">Green Channel</div>
+      <div class="ch-speed">speed = 0.6 + 0.00 = <strong>0.60</strong></div>
+      <p style="font-size:0.85rem; color:var(--text-dim); margin-top:0.5rem">Baseline speed → medium refraction</p>
+    </div>
+    <div class="channel-box blue-ch">
+      <div class="ch-label">Blue Channel</div>
+      <div class="ch-speed">speed = 0.6 − 0.04 = <strong>0.56</strong></div>
+      <p style="font-size:0.85rem; color:var(--text-dim); margin-top:0.5rem">Slowest in glass → most refraction → bends most</p>
+    </div>
+  </div>
+
+  <div class="callout insight">
+    <strong>💡 This matches real physics!</strong>
+    In real glass, blue light has a higher index of refraction (slower speed) than red light. This is why prisms spread white light into a rainbow with red on the outside and violet on the inside.
+  </div>
+
+  <p>Because the three channels are <strong>independent waves</strong> each solving their own wave equation with a slightly different speed constant, they naturally bend at different angles when exiting the prism — exactly like real chromatic dispersion.</p>
+
+  <div class="diagram-container">
+    <div class="diagram">
+      <svg width="560" height="300" viewBox="0 0 560 300" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Prism -->
+        <polygon points="230,30 370,270 90,270" fill="rgba(79,195,247,0.08)" stroke="rgba(79,195,247,0.4)" stroke-width="1.5"/>
+        <text x="230" y="180" fill="#666" font-family="Inter" font-size="12" text-anchor="middle">PRISM</text>
+        <text x="230" y="198" fill="#666" font-family="Inter" font-size="10" text-anchor="middle">speed ≈ 0.56–0.62</text>
+
+        <!-- White incoming beam -->
+        <line x1="0" y1="148" x2="170" y2="130" stroke="white" stroke-width="5" opacity="0.7"/>
+        <line x1="0" y1="148" x2="170" y2="130" stroke="white" stroke-width="2" opacity="1"/>
+        <text x="60" y="125" fill="white" font-family="Inter" font-size="11" text-anchor="middle" opacity="0.8">White light</text>
+        <text x="60" y="139" fill="#888" font-family="Inter" font-size="10" text-anchor="middle">(R=G=B)</text>
+
+        <!-- Separated beams exiting -->
+        <line x1="325" y1="120" x2="540" y2="60" stroke="#ff4444" stroke-width="3" opacity="0.8"/>
+        <text x="520" y="52" fill="#ff4444" font-family="Inter" font-size="11" text-anchor="end" font-weight="600">Red (0.62)</text>
+
+        <line x1="330" y1="135" x2="540" y2="120" stroke="#44cc44" stroke-width="3" opacity="0.8"/>
+        <text x="520" y="112" fill="#44cc44" font-family="Inter" font-size="11" text-anchor="end" font-weight="600">Green (0.60)</text>
+
+        <line x1="332" y1="150" x2="540" y2="190" stroke="#4488ff" stroke-width="3" opacity="0.8"/>
+        <text x="520" y="184" fill="#4488ff" font-family="Inter" font-size="11" text-anchor="end" font-weight="600">Blue (0.56)</text>
+
+        <!-- Angle annotations -->
+        <text x="430" y="240" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">Different speeds → different refraction angles</text>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<div class="rainbow-bar"></div>
+
+<!-- ============================== SECTION 6: WAVE SOURCE ============================== -->
+<section>
+  <span class="section-number">06 — The Light Source</span>
+  <h2>Injecting White Light</h2>
+  <p>The light beam is injected as a <strong>Gaussian-modulated plane wave</strong> during the first fraction of a second (<code>u_time &lt; 0.1</code>).</p>
+
+  <div class="code-block">
+    <span class="keyword">float</span> <span class="fn">circleWave</span>(<span class="type">vec2</span> <span class="var">point</span>, <span class="type">vec2</span> <span class="var">center</span>, <span class="keyword">float</span> <span class="var">freq</span>, <span class="keyword">float</span> <span class="var">size</span>) {<br>
+    &nbsp;&nbsp;<span class="keyword">float</span> <span class="var">r</span> = <span class="fn">pow</span>(point.x - center.x, <span class="number">2.0</span>) + <span class="fn">pow</span>(point.y - center.y, <span class="number">2.0</span>);<br>
+    &nbsp;&nbsp;<span class="keyword">float</span> <span class="var">fade</span> = <span class="fn">exp</span>(-r / <span class="number">2.0</span> / <span class="fn">pow</span>(size, <span class="number">2.0</span>)) / size;<br>
+    &nbsp;&nbsp;<span class="keyword">return</span> fade * <span class="fn">cos</span>(freq * point.x) * <span class="fn">abs</span>(<span class="fn">sin</span>(u_time * <span class="number">3.0</span>));<br>
+    }
+  </div>
+
+  <p>Breaking this down:</p>
+
+  <div class="card-grid">
+    <div class="card">
+      <h3>Gaussian Envelope</h3>
+      <p><code>exp(-r² / 2σ²)</code> — A bell-curve fade centered at <code>(-0.4, 0.1)</code> with σ = 0.02. This confines the source to a small spot, creating a beam rather than filling all space.</p>
+    </div>
+    <div class="card">
+      <h3>Plane Wave</h3>
+      <p><code>cos(700 × x)</code> — A high-frequency cosine along the X axis. The frequency of 700 sets the wavelength of the light. Because it multiplies the same value into all 3 channels, the source is <strong>white light</strong>.</p>
+    </div>
+    <div class="card">
+      <h3>Rotation</h3>
+      <p>The coordinates are rotated by <code>-0.2 radians</code> (≈ -11.5°) before the cosine, angling the beam so it enters the prism at an angle — necessary for refraction to spread the colors.</p>
+    </div>
+    <div class="card">
+      <h3>Time Pulse</h3>
+      <p><code>|sin(time × 3)|</code> gently pulses the source on/off, and the <code>time &lt; 0.1</code> guard means the source only emits briefly — then the wave propagates freely forever.</p>
+    </div>
+  </div>
+</section>
+
+<div class="rainbow-bar"></div>
+
+<!-- ============================== SECTION 7: PING-PONG ============================== -->
+<section>
+  <span class="section-number">07 — Ping-Pong Rendering</span>
+  <h2>Double Buffering on the GPU</h2>
+  <p>A GPU shader can't read from and write to the same texture simultaneously. The solution: <strong>ping-pong</strong> between two sets of textures.</p>
+
+  <div class="diagram-container">
+    <div class="diagram">
+      <svg width="520" height="240" viewBox="0 0 520 240" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Buffer A -->
+        <rect x="20" y="40" width="180" height="160" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.3)" stroke-width="1.5" rx="10"/>
+        <text x="110" y="30" fill="var(--red)" font-family="Inter" font-size="13" text-anchor="middle" font-weight="600">Buffer A (fb)</text>
+        <text x="110" y="75" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureAmp</text>
+        <text x="110" y="105" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureVel</text>
+        <text x="110" y="135" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureAcc</text>
+
+        <!-- Buffer B -->
+        <rect x="320" y="40" width="180" height="160" fill="rgba(79,195,247,0.08)" stroke="rgba(79,195,247,0.3)" stroke-width="1.5" rx="10"/>
+        <text x="410" y="30" fill="var(--accent2)" font-family="Inter" font-size="13" text-anchor="middle" font-weight="600">Buffer B (fb1)</text>
+        <text x="410" y="75" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureAmp1</text>
+        <text x="410" y="105" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureVel1</text>
+        <text x="410" y="135" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureAcc1</text>
+
+        <!-- Arrows -->
+        <path d="M 200 95 Q 260 60 320 95" stroke="rgba(255,169,77,0.7)" stroke-width="2" fill="none" marker-end="url(#arrowOrange)"/>
+        <text x="260" y="68" fill="var(--orange)" font-family="Inter" font-size="10" text-anchor="middle" font-weight="600">Step 1: Read A → Write B</text>
+
+        <path d="M 320 145 Q 260 180 200 145" stroke="rgba(105,219,124,0.7)" stroke-width="2" fill="none" marker-end="url(#arrowGreen)"/>
+        <text x="260" y="192" fill="var(--green)" font-family="Inter" font-size="10" text-anchor="middle" font-weight="600">Step 2: Read B → Write A</text>
+
+        <defs>
+          <marker id="arrowOrange" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(255,169,77,0.7)"/>
+          </marker>
+          <marker id="arrowGreen" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(105,219,124,0.7)"/>
+          </marker>
+        </defs>
+
+        <text x="260" y="228" fill="var(--text-dim)" font-family="Inter" font-size="11" text-anchor="middle">Each logic() call does both steps = 2 wave updates</text>
+      </svg>
+    </div>
+  </div>
+
+  <p>Each call to <code style="color:var(--accent2)">logic()</code> does <strong>two simulation steps</strong> (A→B then B→A). The update loop calls <code>logic()</code> 4 times per frame, giving <strong>8 wave equation steps per rendered frame</strong>. This sub-stepping makes the wave propagate fast enough to be visually interesting.</p>
+
+  <div class="code-block">
+    <span class="keyword">function</span> <span class="fn">update</span>() {<br>
+    &nbsp;&nbsp;<span class="keyword">for</span>(<span class="keyword">let</span> <span class="var">i</span> = <span class="number">0</span>; i &lt; <span class="number">4</span>; i++) <span class="fn">logic</span>();  <span class="comment">// 4 × 2 = 8 steps</span><br>
+    &nbsp;&nbsp;<span class="fn">render</span>();  <span class="comment">// display the result</span><br>
+    &nbsp;&nbsp;window.<span class="fn">requestAnimationFrame</span>(update);<br>
+    }
+  </div>
+</section>
+
+<div class="rainbow-bar"></div>
+
+<!-- ============================== SECTION 8: BORDERS ============================== -->
+<section>
+  <span class="section-number">08 — Boundary Conditions</span>
+  <h2>Absorbing Borders</h2>
+  <p>Without boundary handling, waves would reflect off the edges of the texture, creating unwanted interference. The <code>border()</code> function creates an <strong>absorbing boundary</strong>:</p>
+
+  <div class="code-block">
+    <span class="keyword">void</span> <span class="fn">border</span>(<span class="keyword">inout</span> <span class="type">vec3</span> <span class="var">amp</span>, <span class="keyword">inout</span> <span class="type">vec3</span> <span class="var">vel</span>) {<br>
+    &nbsp;&nbsp;<span class="keyword">float</span> <span class="var">falloff</span> = <span class="number">1.0</span> - <span class="fn">clamp</span>(<span class="fn">box</span>(v_texcoord - <span class="number">0.5</span>, <span class="type">vec2</span>(<span class="number">0.45</span>)), <span class="number">0.0</span>, <span class="number">1.0</span>);<br>
+    &nbsp;&nbsp;<span class="var">amp</span> *= falloff;<br>
+    &nbsp;&nbsp;<span class="var">vel</span> *= falloff;<br>
+    }
+  </div>
+
+  <p>This uses a box SDF centered on the texture. Within a 0.45 half-size box (i.e., the inner 90%), <code>falloff = 1.0</code> (no damping). Near the edges, falloff smoothly drops to 0, killing both amplitude and velocity — the wave simply fades away instead of bouncing back.</p>
+</section>
+
+<div class="rainbow-bar"></div>
+
+<!-- ============================== SECTION 9: RENDERING ============================== -->
+<section>
+  <span class="section-number">09 — Final Rendering</span>
+  <h2>From Exposure to Pixels</h2>
+  <p>The render shader reads the <strong>accumulated exposure</strong> texture (not the raw wave amplitude) and tone-maps it to produce the final image.</p>
+
+  <div class="step-flow">
+    <div class="step">
+      <div class="step-number">1</div>
+      <div class="step-content">
+        <h3>Clamp & Square</h3>
+        <p><code>col = clamp(col, 0, 1); col *= col;</code> — Clamps values to [0,1] and applies a gamma-like squaring that deepens contrast and makes the dark areas darker.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">2</div>
+      <div class="step-content">
+        <h3>Blue-to-Violet Correction</h3>
+        <p>Real violet isn't just blue — it has red mixed in. The shader computes how "blue-dominant" a pixel is and adds red to simulate violet:</p>
+        <div class="code-block">
+          <span class="keyword">float</span> <span class="var">blue</span> = col.b / (col.r + col.g + col.b);<br>
+          <span class="var">blue</span> = <span class="fn">pow</span>(blue, <span class="number">4.0</span>) * col.b;<br>
+          col.r += <span class="var">blue</span>;  <span class="comment">// add red to blue-heavy areas → violet!</span>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-number">3</div>
+      <div class="step-content">
+        <h3>Prism Tint</h3>
+        <p>The glass region is tinted with a subtle blue-gray color using the wall map:</p>
+        <div class="code-block">
+          col += <span class="type">vec3</span>(<span class="number">0.2</span>, <span class="number">0.25</span>, <span class="number">0.3</span>) * <span class="fn">sqrt</span>(<span class="number">1.0</span> - d); <span class="comment">// d=0.6 inside prism</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="rainbow-bar"></div>
+
+<!-- ============================== SECTION 10: FULL PIPELINE ============================== -->
+<section>
+  <span class="section-number">10 — Complete Pipeline</span>
+  <h2>Putting It All Together</h2>
+
+  <div class="diagram-container">
+    <div class="diagram" style="max-width: 700px;">
+      <svg width="660" height="480" viewBox="0 0 660 480" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- Step 1: Init -->
+        <rect x="20" y="20" width="200" height="65" fill="rgba(255,169,77,0.1)" stroke="rgba(255,169,77,0.4)" stroke-width="1.5" rx="10"/>
+        <text x="120" y="45" fill="var(--orange)" font-family="Inter" font-size="13" text-anchor="middle" font-weight="600">① Init (once)</text>
+        <text x="120" y="65" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">Draw triangle → wall map</text>
+        <text x="120" y="78" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">speed = 0.6 inside, 1.0 outside</text>
+
+        <line x1="120" y1="85" x2="120" y2="110" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+
+        <!-- Step 2: Inject -->
+        <rect x="20" y="110" width="200" height="65" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.2)" stroke-width="1.5" rx="10"/>
+        <text x="120" y="135" fill="white" font-family="Inter" font-size="13" text-anchor="middle" font-weight="600">② Inject Light (t &lt; 0.1s)</text>
+        <text x="120" y="153" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">Gaussian × cos(700·x) → white beam</text>
+        <text x="120" y="166" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">Rotated -11.5° toward prism</text>
+
+        <line x1="120" y1="175" x2="120" y2="200" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+
+        <!-- Step 3: Wave sim loop -->
+        <rect x="20" y="200" width="200" height="110" fill="rgba(124,111,247,0.1)" stroke="rgba(124,111,247,0.4)" stroke-width="1.5" rx="10"/>
+        <text x="120" y="225" fill="var(--accent)" font-family="Inter" font-size="13" text-anchor="middle" font-weight="600">③ Wave Simulation</text>
+        <text x="120" y="245" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">8 steps per frame (4 × ping-pong)</text>
+        <text x="120" y="262" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">vel += laplacian × speed</text>
+        <text x="120" y="277" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">amp += vel</text>
+        <text x="120" y="292" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">R,G,B get different speeds in prism</text>
+
+        <!-- Loop arrow -->
+        <path d="M 220 255 Q 260 255 260 220 Q 260 190 220 200" stroke="rgba(124,111,247,0.4)" stroke-width="1.5" fill="none" stroke-dasharray="4 4" marker-end="url(#arrowPurple)"/>
+        <text x="280" y="222" fill="var(--accent)" font-family="Inter" font-size="9" text-anchor="start">loop ×8</text>
+
+        <line x1="120" y1="310" x2="120" y2="340" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+
+        <!-- Step 4: Accumulate -->
+        <rect x="20" y="340" width="200" height="50" fill="rgba(105,219,124,0.1)" stroke="rgba(105,219,124,0.3)" stroke-width="1.5" rx="10"/>
+        <text x="120" y="362" fill="var(--green)" font-family="Inter" font-size="13" text-anchor="middle" font-weight="600">④ Accumulate Exposure</text>
+        <text x="120" y="380" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">acc += |amp| × 0.002</text>
+
+        <line x1="120" y1="390" x2="120" y2="415" stroke="var(--text-dim)" stroke-width="1.5" marker-end="url(#arrowGray)"/>
+
+        <!-- Step 5: Render -->
+        <rect x="20" y="415" width="200" height="50" fill="rgba(79,195,247,0.1)" stroke="rgba(79,195,247,0.3)" stroke-width="1.5" rx="10"/>
+        <text x="120" y="437" fill="var(--accent2)" font-family="Inter" font-size="13" text-anchor="middle" font-weight="600">⑤ Render to Screen</text>
+        <text x="120" y="455" fill="var(--text-dim)" font-family="Inter" font-size="10" text-anchor="middle">Tone-map + violet fix + prism tint</text>
+
+        <defs>
+          <marker id="arrowGray" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="var(--text-dim)"/>
+          </marker>
+          <marker id="arrowPurple" viewBox="0 0 10 10" refX="10" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+            <path d="M 0 0 L 10 5 L 0 10 z" fill="rgba(124,111,247,0.4)"/>
+          </marker>
+        </defs>
+
+        <!-- Right-side: texture state annotations -->
+        <rect x="350" y="50" width="280" height="380" fill="rgba(255,255,255,0.02)" stroke="var(--border)" stroke-width="1" rx="12" stroke-dasharray="4 4"/>
+        <text x="490" y="40" fill="var(--text-dim)" font-family="Inter" font-size="12" text-anchor="middle" font-weight="600">GPU Texture State</text>
+
+        <rect x="370" y="70" width="240" height="30" fill="rgba(255,107,107,0.08)" stroke="rgba(255,107,107,0.2)" rx="6"/>
+        <text x="490" y="90" fill="var(--red)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureAmp (R,G,B) — wave displacement</text>
+
+        <rect x="370" y="115" width="240" height="30" fill="rgba(79,195,247,0.08)" stroke="rgba(79,195,247,0.2)" rx="6"/>
+        <text x="490" y="135" fill="var(--accent2)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureVel (R,G,B) — wave velocity</text>
+
+        <rect x="370" y="160" width="240" height="30" fill="rgba(105,219,124,0.08)" stroke="rgba(105,219,124,0.2)" rx="6"/>
+        <text x="490" y="180" fill="var(--green)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureAcc (R,G,B) — exposure buffer</text>
+
+        <rect x="370" y="205" width="240" height="30" fill="rgba(255,169,77,0.08)" stroke="rgba(255,169,77,0.2)" rx="6"/>
+        <text x="490" y="225" fill="var(--orange)" font-family="JetBrains Mono" font-size="10" text-anchor="middle">textureWalls (R only) — speed map</text>
+
+        <!-- Double buffer -->
+        <rect x="370" y="260" width="110" height="55" fill="rgba(255,107,107,0.05)" stroke="rgba(255,107,107,0.2)" rx="8"/>
+        <text x="425" y="282" fill="var(--red)" font-family="JetBrains Mono" font-size="9" text-anchor="middle">fb (Set A)</text>
+        <text x="425" y="298" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="8" text-anchor="middle">amp, vel, acc</text>
+
+        <rect x="500" y="260" width="110" height="55" fill="rgba(79,195,247,0.05)" stroke="rgba(79,195,247,0.2)" rx="8"/>
+        <text x="555" y="282" fill="var(--accent2)" font-family="JetBrains Mono" font-size="9" text-anchor="middle">fb1 (Set B)</text>
+        <text x="555" y="298" fill="var(--text-dim)" font-family="JetBrains Mono" font-size="8" text-anchor="middle">amp1, vel1, acc1</text>
+
+        <path d="M 480 280 Q 490 268 500 280" stroke="var(--text-dim)" stroke-width="1" fill="none"/>
+        <text x="490" y="264" fill="var(--text-dim)" font-family="Inter" font-size="8" text-anchor="middle">swap</text>
+
+        <!-- Screen output -->
+        <rect x="390" y="340" width="200" height="70" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.15)" rx="8"/>
+        <text x="490" y="365" fill="white" font-family="Inter" font-size="11" text-anchor="middle" font-weight="600">🖥️ Screen</text>
+        <text x="490" y="383" fill="var(--text-dim)" font-family="Inter" font-size="9" text-anchor="middle">Full-screen render from</text>
+        <text x="490" y="398" fill="var(--text-dim)" font-family="Inter" font-size="9" text-anchor="middle">900×600 sim → any resolution</text>
+      </svg>
+    </div>
+  </div>
+
+  <div class="callout">
+    <strong>Summary</strong>
+    The simulation is a <strong>2D wave equation on a cellular automata grid</strong>, where each cell stores amplitude and velocity for 3 color channels independently. A triangular prism slows waves to 60% speed, with each channel (R, G, B) receiving a slightly different speed offset. This tiny speed difference causes the wavefronts to bend at different angles — chromatic dispersion — producing a rainbow. The accumulated energy over time creates the glowing light trails you see on screen.
+  </div>
+</section>
+
+<footer>
+  <p>Made to explain <a href="index.html">the Light Prism Simulation</a>.</p>
+</footer>
+
+<!-- Smooth scroll -->
+<script>
+document.querySelectorAll('a[href^="#"]').forEach(a => {
+  a.addEventListener('click', e => {
+    e.preventDefault();
+    document.querySelector(a.getAttribute('href')).scrollIntoView({ behavior: 'smooth' });
+  });
+});
+</script>
+
+</body>
+</html>
