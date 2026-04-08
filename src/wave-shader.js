@@ -31,7 +31,7 @@ function makeWaveProgram(gl) {
 		layout(location = 2) out vec4 outAcc;
 
 		const float ACCUMULATED_EXPOSURE = 0.002;
-		const float FREQUENCY = 700.0;
+		const float FREQUENCY = 300.0;
 		const float RADIUS = 0.02;
 		const vec3 COLOR_SHIFT = vec3(0.002, 0.0, -0.004) * 10.0;
 
@@ -71,7 +71,7 @@ function makeWaveProgram(gl) {
 			vec3 vel = texture(u_textureVel, v_texcoord).rgb;
 			vec3 speed = texture(u_textureWall, v_texcoord).rrr;
 
-			speed += COLOR_SHIFT * smoothstep(0.91, 0.9, speed);
+			// speed += COLOR_SHIFT * smoothstep(0.91, 0.9, speed);
 			vec3 force = ampUp + ampRight + ampDown + ampLeft;
 			vel += (force * 0.25 - amp) * speed;
 			amp += vel;
@@ -79,7 +79,7 @@ function makeWaveProgram(gl) {
 			border(amp, vel);
 
 			if(u_time < 0.1) {
-				amp += circleWave(uv * rot(-0.2), vec2(-0.4, 0.1), FREQUENCY, RADIUS);
+				amp += circleWave(uv, vec2(-0.4, 0.0), FREQUENCY, RADIUS);
 			}
 
 			vec3 acc = texture(u_textureAcc, v_texcoord).rgb;

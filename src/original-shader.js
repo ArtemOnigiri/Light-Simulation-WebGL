@@ -61,8 +61,8 @@ function makeOriginalProgram(gl) {
 			outAmp = vec4(col, 1.0);
 			outVel = vec4(vel, 1.0);
 
-			// float d = length(uv) - 0.2;
-			float d = triangle(uv * 3.0 + vec2(0.0, 0.2));
+			float d = length(uv) - 0.2;
+			// float d = triangle(uv * 3.0 + vec2(0.0, 0.2));
 			// float d = mandelbrot((uv - vec2(0.35, 0.0)) * 2.5) - 1.0;
 			
 			d = d < 0.0 ? INDEX_OF_REFRACTION : 1.0;

@@ -179,7 +179,8 @@ function render() {
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, textureAcc);
+  gl.bindTexture(gl.TEXTURE_2D, textureAmp); // show wave amplitude
+  // gl.bindTexture(gl.TEXTURE_2D, textureAcc); // show accumulated exposure
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, textureWalls);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
