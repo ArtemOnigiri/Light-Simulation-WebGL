@@ -1,6 +1,5 @@
 function makeOriginalProgram(gl) {
-	const vertexShaderCode =
-		`#version 300 es
+  const vertexShaderCode = `#version 300 es
 
 		in vec2 a_position;
 		in vec2 a_texcoord;
@@ -13,8 +12,7 @@ function makeOriginalProgram(gl) {
 		}
 	`;
 
-	const fragmentShaderCode =
-		`#version 300 es
+  const fragmentShaderCode = `#version 300 es
 		precision highp float;
 
 		uniform float u_time;
@@ -63,31 +61,31 @@ function makeOriginalProgram(gl) {
 			outAmp = vec4(col, 1.0);
 			outVel = vec4(vel, 1.0);
 
-			// float d = length(uv) - 0.2;
-			float d = triangle(uv * 3.0 + vec2(0.0, 0.2));
+			float d = length(uv) - 0.2;
+			// float d = triangle(uv * 3.0 + vec2(0.0, 0.2));
 			// float d = mandelbrot((uv - vec2(0.35, 0.0)) * 2.5) - 1.0;
 			
 			d = d < 0.0 ? INDEX_OF_REFRACTION : 1.0;
 			outWall = vec4(d, 0.0, 0.0, 1.0);
 		}
 	`;
-	const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-	gl.shaderSource(vertexShader, vertexShaderCode);
-	gl.compileShader(vertexShader);
-	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-	gl.shaderSource(fragmentShader, fragmentShaderCode);
-	gl.compileShader(fragmentShader);
-	const log = gl.getShaderInfoLog(fragmentShader);
-	if(log) console.log(log);
+  const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vertexShader, vertexShaderCode);
+  gl.compileShader(vertexShader);
+  const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fragmentShader, fragmentShaderCode);
+  gl.compileShader(fragmentShader);
+  const log = gl.getShaderInfoLog(fragmentShader);
+  if (log) console.log(log);
 
-	const program = gl.createProgram();
-	gl.attachShader(program, vertexShader);
-	gl.attachShader(program, fragmentShader);
-	gl.linkProgram(program);
-	const positionAttribute = gl.getAttribLocation(program, 'a_position');
-	const texcoordAttribute = gl.getAttribLocation(program, "a_texcoord");
-	const resolutionUniform = gl.getUniformLocation(program, 'u_resolution');
-	const mouseUniform = gl.getUniformLocation(program, 'u_mouse');
-	const timeUniform = gl.getUniformLocation(program, 'u_time');
-	return {program, positionAttribute, texcoordAttribute, resolutionUniform, mouseUniform, timeUniform};
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  const positionAttribute = gl.getAttribLocation(program, "a_position");
+  const texcoordAttribute = gl.getAttribLocation(program, "a_texcoord");
+  const resolutionUniform = gl.getUniformLocation(program, "u_resolution");
+  const mouseUniform = gl.getUniformLocation(program, "u_mouse");
+  const timeUniform = gl.getUniformLocation(program, "u_time");
+  return { program, positionAttribute, texcoordAttribute, resolutionUniform, mouseUniform, timeUniform };
 }

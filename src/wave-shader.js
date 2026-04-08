@@ -1,6 +1,5 @@
 function makeWaveProgram(gl) {
-	const vertexShaderCode =
-		`#version 300 es
+  const vertexShaderCode = `#version 300 es
 
 		in vec2 a_position;
 		in vec2 a_texcoord;
@@ -13,8 +12,7 @@ function makeWaveProgram(gl) {
 		}
 	`;
 
-	const fragmentShaderCode =
-		`#version 300 es
+  const fragmentShaderCode = `#version 300 es
 		precision highp float;
 
 		uniform float u_time;
@@ -91,38 +89,38 @@ function makeWaveProgram(gl) {
 			outAcc = vec4(acc, 1.0);
 		}
 	`;
-	const vertexShader = gl.createShader(gl.VERTEX_SHADER);
-	gl.shaderSource(vertexShader, vertexShaderCode);
-	gl.compileShader(vertexShader);
-	const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
-	gl.shaderSource(fragmentShader, fragmentShaderCode);
-	gl.compileShader(fragmentShader);
-	const log = gl.getShaderInfoLog(fragmentShader);
-	if(log) console.log(log);
+  const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+  gl.shaderSource(vertexShader, vertexShaderCode);
+  gl.compileShader(vertexShader);
+  const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+  gl.shaderSource(fragmentShader, fragmentShaderCode);
+  gl.compileShader(fragmentShader);
+  const log = gl.getShaderInfoLog(fragmentShader);
+  if (log) console.log(log);
 
-	const program = gl.createProgram();
-	gl.attachShader(program, vertexShader);
-	gl.attachShader(program, fragmentShader);
-	gl.linkProgram(program);
-	const positionAttribute = gl.getAttribLocation(program, 'a_position');
-	const texcoordAttribute = gl.getAttribLocation(program, "a_texcoord");
-	const resolutionUniform = gl.getUniformLocation(program, 'u_resolution');
-	const mouseUniform = gl.getUniformLocation(program, 'u_mouse');
-	const textureAmpUniform = gl.getUniformLocation(program, 'u_textureAmp');
-	const textureVelUniform = gl.getUniformLocation(program, 'u_textureVel');
-	const textureAccUniform = gl.getUniformLocation(program, 'u_textureAcc');
-	const textureWallUniform = gl.getUniformLocation(program, 'u_textureWall');
-	const timeUniform = gl.getUniformLocation(program, 'u_time');
-	return {
-		program,
-		positionAttribute,
-		texcoordAttribute,
-		resolutionUniform,
-		mouseUniform,
-		textureAmpUniform,
-		textureVelUniform,
-		textureAccUniform,
-		textureWallUniform,
-		timeUniform
-	};
+  const program = gl.createProgram();
+  gl.attachShader(program, vertexShader);
+  gl.attachShader(program, fragmentShader);
+  gl.linkProgram(program);
+  const positionAttribute = gl.getAttribLocation(program, "a_position");
+  const texcoordAttribute = gl.getAttribLocation(program, "a_texcoord");
+  const resolutionUniform = gl.getUniformLocation(program, "u_resolution");
+  const mouseUniform = gl.getUniformLocation(program, "u_mouse");
+  const textureAmpUniform = gl.getUniformLocation(program, "u_textureAmp");
+  const textureVelUniform = gl.getUniformLocation(program, "u_textureVel");
+  const textureAccUniform = gl.getUniformLocation(program, "u_textureAcc");
+  const textureWallUniform = gl.getUniformLocation(program, "u_textureWall");
+  const timeUniform = gl.getUniformLocation(program, "u_time");
+  return {
+    program,
+    positionAttribute,
+    texcoordAttribute,
+    resolutionUniform,
+    mouseUniform,
+    textureAmpUniform,
+    textureVelUniform,
+    textureAccUniform,
+    textureWallUniform,
+    timeUniform,
+  };
 }
