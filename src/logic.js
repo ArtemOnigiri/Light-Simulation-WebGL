@@ -1,8 +1,6 @@
 const cnv = document.getElementById("cnv");
 const SIM_WIDTH = 900;
 const SIM_HEIGHT = 600;
-cnv.width = window.innerWidth;
-cnv.height = window.innerHeight;
 const gl = cnv.getContext("webgl2");
 
 const quad = [-1, -1, 1, -1, 1, 1, 1, 1, -1, 1, -1, -1];
@@ -30,11 +28,25 @@ let fb1;
 document.addEventListener("mousemove", mouseMove);
 window.addEventListener("resize", onResize);
 
+onResize();
 initGL();
 
 function onResize() {
-  cnv.width = window.innerWidth;
-  cnv.height = window.innerHeight;
+  const simAspect = SIM_WIDTH / SIM_HEIGHT;
+  let displayWidth = window.innerWidth;
+  let displayHeight = Math.floor(displayWidth / simAspect);
+
+  if (displayHeight > window.innerHeight) {
+    displayHeight = window.innerHeight;
+    displayWidth = Math.floor(displayHeight * simAspect);
+  }
+
+  const pixelRatio = window.devicePixelRatio || 1;
+
+  cnv.style.width = `${displayWidth}px`;
+  cnv.style.height = `${displayHeight}px`;
+  cnv.width = Math.max(1, Math.round(displayWidth * pixelRatio));
+  cnv.height = Math.max(1, Math.round(displayHeight * pixelRatio));
 }
 
 function initGL() {
@@ -167,7 +179,7 @@ function render() {
 
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   gl.activeTexture(gl.TEXTURE0);
-  gl.bindTexture(gl.TEXTURE_2D, textureAmp);
+  gl.bindTexture(gl.TEXTURE_2D, textureAcc);
   gl.activeTexture(gl.TEXTURE1);
   gl.bindTexture(gl.TEXTURE_2D, textureWalls);
   gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -180,6 +192,10 @@ function update() {
 }
 
 function mouseMove(e) {
-  mx = (e.clientX / cnv.width - 0.5) * (SIM_WIDTH / SIM_HEIGHT);
-  my = -e.clientY / cnv.height + 0.5;
+  const rect = cnv.getBoundingClientRect();
+  const x = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+  const y = Math.min(Math.max((e.clientY - rect.top) / rect.height, 0), 1);
+
+  mx = (x - 0.5) * (SIM_WIDTH / SIM_HEIGHT);
+  my = -y + 0.5;
 }
